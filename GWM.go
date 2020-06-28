@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-const _amountOfInput = 2 // expecting '1d12' and '5' (dice and atk bonus)
-
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	var attack Attack
@@ -19,10 +17,7 @@ func main() {
 
 	for scanner.Scan() {
 		input := scanner.Text()
-
 		empty := attack.findEmpty()
-
-		//		fmt.Printf("response: %v", empty)
 
 		switch empty {
 		case "Attack Bonus":
@@ -52,7 +47,7 @@ func main() {
 			fmt.Printf("Average Damage: %v\n\n", avgDmg)
 
 			maxAC := calcMaxAC(*attack.AttackBonus, avgDmg)
-			fmt.Printf("Max AC: %v\n\n", maxAC)
+			fmt.Printf("> Max AC to GWM at: %v <\n\n", maxAC)
 			attack.reset()
 		}
 		fmt.Print(generateExpectedInputQuestion(attack))
@@ -62,10 +57,6 @@ func main() {
 func generateExpectedInputQuestion(atk Attack) string {
 	return atk.findEmpty() + ": "
 }
-
-//func expectedInputIsComplete(attack Attack) bool {
-//	return attack.findEmpty == ""
-//}
 
 func calcAvgDmg(damageDice string, damageBonus int) decimal.Decimal {
 	var dice []decimal.Decimal
