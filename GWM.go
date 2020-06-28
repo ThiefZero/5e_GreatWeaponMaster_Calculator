@@ -3,61 +3,69 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/shopspring/decimal"
 )
 
 const _amountOfInput = 2 // expecting '1d12' and '5' (dice and atk bonus)
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	var expectedInput []string
-	fmt.Print(generateExpectedInputQuestion(len(expectedInput)))
+	var attack Attack
+	fmt.Print(generateExpectedInputQuestion(attack))
 
 	for scanner.Scan() {
 		input := scanner.Text()
-		expectedInput = append(expectedInput, input)
-		fmt.Print(generateExpectedInputQuestion(len(expectedInput)))
 
-		if expectedInputIsComplete(expectedInput) {
-			// check all inputs
-			damageDice := expectedInput[0]
+		empty := attack.findEmpty()
 
-			// check damageBonus
-			damageBonus, err := strconv.Atoi(expectedInput[1])
+		//		fmt.Printf("response: %v", empty)
+
+		switch empty {
+		case "Attack Bonus":
+			atkBonus, err := strconv.Atoi(input)
 			if err != nil {
-				fmt.Printf("Invalid damageBonus: %v %v\n\n", expectedInput[1], err)
-				expectedInput = nil
-				fmt.Print(generateExpectedInputQuestion(len(expectedInput)))
+				fmt.Print(err)
 				continue
 			}
+			attack.AttackBonus = &atkBonus
 
-			fmt.Printf("Average Damage: %v\n\n", calcAvgDmg(damageDice, damageBonus))
-			expectedInput = nil
-			fmt.Print(generateExpectedInputQuestion(len(expectedInput)))
+		case "Damage Dice":
+			attack.DamageDice = &input
+
+		case "Damage Bonus":
+			dmgBonus, err := strconv.Atoi(input)
+			if err != nil {
+				fmt.Print(err)
+				continue
+			}
+			attack.DamageBonus = &dmgBonus
 
 		}
+
+		if attack.findEmpty() == "" {
+			// Done, print answer
+			avgDmg := calcAvgDmg(*attack.DamageDice, *attack.DamageBonus)
+			fmt.Printf("Average Damage: %v\n\n", avgDmg)
+
+			maxAC := calcMaxAC(*attack.AttackBonus, avgDmg)
+			fmt.Printf("Max AC: %v\n\n", maxAC)
+			attack.reset()
+		}
+		fmt.Print(generateExpectedInputQuestion(attack))
 	}
 }
 
-func generateExpectedInputQuestion(amountInputted int) string {
-	switch amountInputted {
-	case 0:
-		return "Damage dice used: "
-	case 1:
-		return "Damage bonus: "
-	}
-
-	return ""
+func generateExpectedInputQuestion(atk Attack) string {
+	return atk.findEmpty() + ": "
 }
 
-func expectedInputIsComplete(input []string) bool {
-	return len(input) == _amountOfInput
-}
+//func expectedInputIsComplete(attack Attack) bool {
+//	return attack.findEmpty == ""
+//}
 
 func calcAvgDmg(damageDice string, damageBonus int) decimal.Decimal {
 	var dice []decimal.Decimal
@@ -81,4 +89,12 @@ func calcAvgDmg(damageDice string, damageBonus int) decimal.Decimal {
 	avgDmgOfDice = average.Mul(dice[0])            // 6.5 * 2 for 2 dice
 
 	return decimal.NewFromInt(int64(damageBonus)).Add(avgDmgOfDice)
+}
+
+func calcMaxAC(atkBonus int, avgDmg decimal.Decimal) decimal.Decimal {
+	_atkBonus := decimal.NewFromInt(int64(atkBonus))
+	_halfDmg := avgDmg.Div(decimal.NewFromInt(2))
+	_sixTeen := decimal.NewFromInt(16)
+
+	return _atkBonus.Sub(_halfDmg).Add(_sixTeen)
 }
